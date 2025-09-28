@@ -1,78 +1,71 @@
-ruta = r"C:\Users\xxx\OneDrive\Escritorio\xxx\ConversionDeMatrices\networks\social.txt"
+import os
 
-pares_tipo1 = set()
-pares_tipo2 = set()
+def procesar_pares(nombre_archivo):
+    """
+    Procesa un archivo de pares de nodos y genera un archivo de salida con:
+    - Resumen: número de nodos, aristas y conteo de tipos.
+    - Listado de pares con su tipo (1, 2 o 3) según aparezcan.
+    """
+    lista1 = []  # Pares que aparecen una vez
+    lista2 = []  # Pares que aparecen dos veces
+    aristas = 0
+    num_nodos = 0
+    conteo_tipos = {1: 0, 2: 0, 3: 0}
 
-lineas_salida = []
+    # Generar nombre de archivo de salida basado en el nombre del archivo origen
+    base, _ = os.path.splitext(nombre_archivo)
+    salida_txt = f"{base}_procesado.txt"
 
-with open(ruta, "r", encoding="utf-8", errors="ignore") as f:
-    for line in f:
-        nums = line.strip().split()
-        if len(nums) != 2:
-            continue
-        a, b = int(nums[0]), int(nums[1])
-        par = (a, b)
-        par_inv = (b, a)
-
-        if par not in pares_tipo1 and par_inv not in pares_tipo1:
-            # Par nuevo, tipo 1
-            lineas_salida.append((a, b, 1))
-            pares_tipo1.add(par)
-        elif par_inv in pares_tipo1 and par not in pares_tipo2:
-            # Aparece inverso, tipo 2
-            lineas_salida.append((a, b, 2))
-            pares_tipo2.add(par)
-            # Añadimos tipo 3 solo para este par tipo 2
-            lineas_salida.append((a, b, 3))
+    # Leer archivo y procesar aristas
+    with open(nombre_archivo, "r") as f:
+        primera = f.readline().strip()  # Primera línea: número de nodos
+        if primera.isdigit():
+            num_nodos = int(primera)
         else:
-            # Si par ya fue tipo 1 o 2, ignorar repetidos
-            pass
+            raise ValueError("La primera línea no es un número válido de nodos.")
 
-for a, b, t in lineas_salida:
-    print(a, b, t)
+        # Procesar pares de nodos
+        for linea in f:
+            partes = linea.strip().split()
+            if len(partes) != 2:
+                continue
 
-"""
-===================================================================================
-EXPLICACIÓN DEL ALGORITMO:
+            a, b = map(int, partes)
+            aristas += 1
 
-Este código procesa una lista de pares dirigidos (a,b) que representan conexiones en un grafo.
+            par = (a, b)
+            par_inv = (b, a)
 
-- Tipo 1: Cuando un par (a,b) aparece por primera vez y su inverso (b,a) no ha aparecido aún.
-- Tipo 2: Cuando aparece el par inverso (b,a) de un par que ya era tipo 1.
-- Tipo 3: Se agrega una línea adicional para representar bidireccionalidad cuando
-  un par tipo 2 aparece, mostrando que existe una conexión en ambos sentidos.
+            # Clasificar el par según cuántas veces aparece
+            if par in lista1 or par_inv in lista1:
+                lista1.remove(par if par in lista1 else par_inv)
+                lista2.append(par)
+            elif par not in lista2 and par_inv not in lista2:
+                lista1.append(par)
 
-Pasos:
+    # Contar tipos antes de escribir archivo
+    for _ in lista1:
+        conteo_tipos[1] += 1
+        conteo_tipos[2] += 1
+    for _ in lista2:
+        conteo_tipos[3] += 2  # ambos sentidos
 
-1. Se almacenan los pares tipo 1 en un conjunto.
-2. Si aparece el inverso de un par tipo 1, ese nuevo par se clasifica como tipo 2.
-3. Además, se añade una línea tipo 3 para mostrar bidireccionalidad, pero no se elimina
-   la información de tipo 1 o 2.
-4. Se ignoran pares repetidos para evitar impresiones duplicadas.
+    # Escribir archivo de salida
+    with open(salida_txt, "w") as f_out:
+        # Resumen
+        f_out.write(f"Nodos: {num_nodos}\n")
+        f_out.write(f"Aristas: {aristas}\n")
+        f_out.write(f"Tipo 1: {conteo_tipos[1]}\n")
+        f_out.write(f"Tipo 2: {conteo_tipos[2]}\n")
+        f_out.write(f"Tipo 3: {conteo_tipos[3]}\n\n")
 
-Ejemplo práctico:
+        # Listado de pares
+        for a, b in lista1:
+            f_out.write(f"{a}\t{b}\t1\n")
+            f_out.write(f"{b}\t{a}\t2\n")
+        for a, b in lista2:
+            f_out.write(f"{a}\t{b}\t3\n")
+            f_out.write(f"{b}\t{a}\t3\n")
 
-Dado un archivo con pares:
-1 2
-2 1
-1 3
-3 1
-2 4
-4 2
-
-El resultado es:
-1 2 1  (aparece primero, tipo 1)
-2 1 2  (inverso, tipo 2)
-2 1 3  (bidireccionalidad)
-1 3 1  (nuevo par, tipo 1)
-3 1 2  (inverso, tipo 2)
-3 1 3  (bidireccionalidad)
-2 4 1  (nuevo par, tipo 1)
-4 2 2  (inverso, tipo 2)
-4 2 3  (bidireccionalidad)
-
-Esto permite detectar conexiones unidireccionales (tipos 1 y 2) y bidireccionales (tipo 3),
-lo cual es importante para analizar la estructura del grafo y sus patrones de conexión.
-
-===================================================================================
-"""
+entrada = "networks/manrix.txt"
+procesar_pares(entrada)
